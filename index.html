@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="index.css">
+    <title>Webcam Recorder</title>
+  </head>
+  <body>
+    <div id="buttonsContainer">
+      <button id="addMediaRecorderBtn">Add Media Recorder</button>
+      <button id="recordBtn">Record</button>
+      <button id="stopBtn">Stop Recording</button>
+    </div>
+
+    <div id="mediaContainerDiv">
+    </div>
+
+    <script>
+      // You can also require other files to run in this process
+      require('./renderer.js')
+    </script>
+  </body>
+</html>
