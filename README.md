@@ -1,4 +1,4 @@
-# Synopticon-Video-Recorder
+# Synchronicon
 Can select and record video feeds. Also communicates with Synopticon via WAMP to remotely start and stop recordings
 
 Requires NPM and FFMPEG to be installed and setup. 
