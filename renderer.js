@@ -3,138 +3,106 @@
 // All of the Node.js APIs are available in this process.
 
 var fs = require('fs')
+var counterfolder=1;
 var recordingPath = "./Recordings/";
-if (!fs.existsSync(recordingPath)){
+var jsonfile="./"
+//make and check directory
+if (!fs.existsSync(recordingPath))
+{
     fs.mkdirSync(recordingPath);
 }
 
 var webcamCounter = 0;
 var mediaDeviceInfos = []; //Stores the avaliable media devices
 var mediaObjects = []; //A list of the created media recorders
+var selectedcam = 1;
 
-var recordBtn = document.getElementById("recordBtn");
-var stopBtn = document.getElementById("stopBtn");
-stopBtn.disabled = true;
+var imageselector = 0 ;
 
+  var currentvalue = "";
+//to record streaming function and change button state
+function recordingbutton(){
+  currentvalue = document.getElementById('recordBtn').value;
+  if(currentvalue === "Start"){
+    document.getElementById("recordBtn").value="Stop";
+    document.getElementById("State").innerHTML="Stop";
+    document.getElementById("recordBtn").className = "stoprecordBtn";
+    startRecording();
+  }
+  else{
+    document.getElementById("recordBtn").value="Start";
+    document.getElementById("State").innerHTML="Start";
+    document.getElementById("recordBtn").className = "startrecordBtn";
+    stopRecording();
+  }
+}
+
+var recordbutton = document.getElementById("recordBtn");
+recordbutton.onclick= recordingbutton ;
+
+
+//recorde stream of all camera
 function startRecording(){
+
+//Check input content
+var fileCreationTimestamp = Date.now();
+ var recordingName = "";
+ var inputFolderElement = document.getElementById("foldername");
+ if(inputFolderElement && inputFolderElement.value !== "")
+ {
+   recordingName = inputFolderElement.value + "_";
+ }
+    
   for(var i = 0; i !== mediaObjects.length; i++){
+    mediaObjects[i].outFile = recordingPath+fileCreationTimestamp+'_'+recordingName+"Recording_Webcam_"+webcamCounter;
+    console.log(mediaObjects[i]);
     var mediaRecorder = mediaObjects[i].recorder;
     mediaRecorder.start(1000);
+    webcamCounter += 1; //Increment the global media recorder counter
+    var  dataset= {
+      table:[]
+    };
+
+    dataset.table.push({fileCreationTimestamp:fileCreationTimestamp, webcamCounter:webcamCounter});
+    var json = JSON.stringify(dataset);
+    fs.writeFileSync(recordingName+"Recording" +'.json', json);
   }
 
-  recordBtn.style.background = "";
-  recordBtn.style.color = "";
-  recordBtn.disabled = true;
-  recordBtn.innerHTML = "Recording";
-
-  stopBtn.disabled = false;
-
   console.log("Recordings started");
+
 }
-recordBtn.onclick = startRecording;
 
 function stopRecording(){
   for(var i = 0; i !== mediaObjects.length; i++){
     var mediaRecorder = mediaObjects[i].recorder;
     mediaRecorder.stop();
   }
-  recordBtn.style.background = "";
-  recordBtn.style.color = "";
-  recordBtn.disabled = false;
-  recordBtn.innerHTML = "Record";
+webcamCounter=0;
 
-  stopBtn.disabled = true;
 }
-stopBtn.onclick = stopRecording;
 
+//check information of devices attached with system
 function gotDevices(deviceInfos) {
   mediaDeviceInfos  = deviceInfos;
+  Makingmedialist();
+
 }
 navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(
   function(err) {
      console.log('The following getUserMedia error occured: ' + err);
-   }
-);
-
-function onMediaSourceChanged(ev){
-  for(var i = 0; i !== mediaObjects.length; i++){
-    if(mediaObjects[i].videoSelector === ev.target || mediaObjects[i].audioSelector === ev.target){
-      console.log("Refreshing media after changes");
-      setupMediaRecorder(mediaObjects[i]);
-      break;
-    }
-  }
-}
-
-//Creates HTML elements to display and select video and audio options for recording
-function createMediaObject(){
-  //Create a container for the new MediaRecorder
-  var videoRecorderDiv = document.createElement("DIV");
-
-  //Create the element to display and record a video feed
-  var videoElement = document.createElement("VIDEO"); //The new Video element
-  videoElement.muted = true; //Mute the video otherwise we get a feedback loop while recording if sound is on
-  //Append the media options to the video container
-  videoRecorderDiv.appendChild(videoElement);
-
-  var mediaObject = {};
-
-  //Create the elements to select video and audio sources
-  var mediaOptionsDiv = document.createElement("DIV"); //Create a container for the new MediaRecorder
-  var videoSourceSelector = document.createElement("SELECT");
-  videoSourceSelector.addEventListener("change", onMediaSourceChanged.bind(mediaObject));
-  mediaOptionsDiv.appendChild(videoSourceSelector);
-  var audioSourceSelector = document.createElement("SELECT");
-  audioSourceSelector.addEventListener("change", onMediaSourceChanged.bind(mediaObject));
-  mediaOptionsDiv.appendChild(audioSourceSelector);
-
-  //Populate the selection options
-  fillMediaRecorderSelectorOptions(videoSourceSelector, audioSourceSelector);
-
-  //Append the media options to the video container
-  videoRecorderDiv.appendChild(mediaOptionsDiv);
-
-  //Create a media object that has the information we need to operate on the video stream later
-  mediaObject.videoElement = videoElement;
-  mediaObject.videoSelector = videoSourceSelector;
-  mediaObject.audioSelector = audioSourceSelector;
-  mediaObject.outFile = recordingPath+"webcam"+webcamCounter;
-  mediaObject.recordingNmb = 0;
-  webcamCounter += 1; //Increment the global media recorder counter
-  mediaObjects.push(mediaObject);
-
-  //Append the created elements to the document
-  document.getElementById("mediaContainerDiv").appendChild(videoRecorderDiv);
-
-  //Initial setup of the media recorder
-  setupMediaRecorder(mediaObject);
-}
-
-//Get the add media recorder button from the DOM and add the onclick callback
-var addMediaRecorderBtn = document.getElementById("addMediaRecorderBtn");
-addMediaRecorderBtn.onclick = createMediaObject;
+   });
 
 //Sets up the preview and prepares the recording of the media object
 function setupMediaRecorder(mediaObject){
   var videoConstraints = {};
-  var audioConstraints = {};
-
   //Setup the video constraints
-  videoConstraints.deviceId = mediaObject.videoSelector.options[mediaObject.videoSelector.selectedIndex].value;
-  //videoConstraints.videoFrameRate = 30;
-  //videoConstraints.videoEncodingBitRate = 3000000;
-
-  //Setup the audio constraints
+  videoConstraints.deviceId = mediaObject.value;//newcont.deviceId;
+  console.log("my device ids"+mediaObject.value);
   var bitDepth = 16;
   var sampleRate = 44100;
   var bitRate = sampleRate * bitDepth;
-  audioConstraints.deviceId = mediaObject.audioSelector.options[mediaObject.audioSelector.selectedIndex].value;
-  //audioConstraints.encodingBitRate = bitRate;
-  //audioConstraints.samplingRate = sampleRate;
-
   navigator.mediaDevices.getUserMedia(
-    { video: videoConstraints,
-      audio: audioConstraints}).then(function(stream) {
+    { video: videoConstraints}).then(function(stream) {
 
       const blobs = [];
 
@@ -185,9 +153,10 @@ function setupMediaRecorder(mediaObject){
       recorder.addEventListener("stop", mediaRecorderStopped.bind(event, mediaObject));
 
       //Stream preview
-      mediaObject.videoElement.srcObject = stream;
-      mediaObject.videoElement.load();
-      mediaObject.videoElement.play();
+     mediaObject.videoElement.srcObject = stream;
+     mediaObject.videoElement.load();
+     mediaObject.videoElement.play();
+  //  mediaObject.deviceId=stream;
   });
 }
 
@@ -237,7 +206,7 @@ function allRecordersStopped(){
 function cleanTmpFiles(){
   //Reset the media objects in case we want to start a new recording
   for(var i = 0; i !== mediaObjects.length; i++){
-    mediaObjects[i].videoElement.pause();
+  mediaObjects[i].videoElement.pause();
     mediaObjects[i].stream.end();
 
     fs.unlink(mediaObjects[i].outFile+"_rec"+mediaObjects[i].recordingNmb+".webm", (err) => {
@@ -251,21 +220,79 @@ function cleanTmpFiles(){
   }
 }
 
-function fillMediaRecorderSelectorOptions(videoSelector, audioSelector){
-  for (var i = 0; i !== mediaDeviceInfos.length; ++i) {
+function Makingmedialist(){
+
+  for (var i = 0; i !== mediaDeviceInfos.length; i++)
+  {
     var deviceInfo = mediaDeviceInfos[i];
-    var option = document.createElement('option');
-    option.value = deviceInfo.deviceId;
 
     if (deviceInfo.kind === 'videoinput') {
-      option.text = deviceInfo.label || 'Camera ' +
-        (videoSelector.length + 1);
-      videoSelector.appendChild(option);
+      //Create the element to display and record a video feed
+      var videoRecorderDiv = document.createElement("DIV");
+          videoRecorderDiv.classList.add("listing");
+      var videoElement = document.createElement("VIDEO"); //The new Video element
+        videoElement.classList.add("videos");
+        videoElement.setAttribute("id", "videoscont");
+        videoElement.muted = true; //Mute the video otherwise we get a feedback loop while recording if sound is on
+      //Append the media options to the video container
+
+        videoRecorderDiv.appendChild(videoElement);
+        var mediaObject = {};
+        mediaObject.videoElement = videoElement;
+        mediaObject.recordingNmb = 0;
+        mediaObject.value = deviceInfo.deviceId;
+        mediaObjects.push(mediaObject);
+
+      //Append the created elements to the document
+        document.getElementById("mediaContainerDiv").appendChild(videoRecorderDiv);
+        setupMediaRecorder(mediaObject);
     }
-    else if (deviceInfo.kind === 'audioinput') {
-      option.text = deviceInfo.label ||
-        'Microphone ' + (audioSelector.length + 1);
-      audioSelector.appendChild(option);
+  }
+}
+
+var photo = document.getElementById("clickphoto");
+var imageCapture;
+photo.onclick= photosetting;
+
+//set available streaming dynamically to capture image
+function setupimages(photoobject)
+{
+  var photomedia = {};
+  photomedia.deviceId = photoobject.value;
+    console.log("my photo ids"+photoobject.value);
+  navigator.mediaDevices.getUserMedia({video: photomedia}).then(function(stream){
+ photoobject.stream =   stream ;
+ console.log(photoobject.stream);
+ const track = stream.getVideoTracks()[0];
+ imageCapture = new ImageCapture(track);
+ takePhoto();
+   });
+}
+
+//creat image in blob and change it to img source with URL
+function takePhoto() {
+  console.log("HAPPENS");
+      imageCapture.takePhoto()
+        .then(blob => {
+          console.log('Photo taken: ' + blob.type + ', ' + blob.size + 'B');
+          var image = document.createElement("img");
+          document.getElementById("imagediv").appendChild(image);
+          image.src = URL.createObjectURL(blob);
+        })
+        .catch(err => console.error('takePhoto() failed: ', err));
+    }
+// get all available video streaming devices to capture image
+function photosetting()
+{
+  for (var i = 0; i !== mediaDeviceInfos.length; i++)
+  {
+  var deviceInfo = mediaDeviceInfos[i];
+
+    if (deviceInfo.kind === 'videoinput')
+    {
+      var photoobject = {};
+      photoobject.value = deviceInfo.deviceId;
+      setupimages(photoobject);
     }
   }
 }
