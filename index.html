@@ -3,18 +3,25 @@
   <head>
     <meta charset="UTF-8">
     <link rel="stylesheet" type="text/css" href="index.css">
-    <title>Webcam Recorder</title>
+    <title>Synchronicon Recorder</title>
   </head>
   <body>
-    <div id="buttonsContainer">
-      <button id="addMediaRecorderBtn">Add Media Recorder</button>
-      <button id="recordBtn">Record</button>
-      <button id="stopBtn">Stop Recording</button>
+    <div class="Container">
+        <h2>Synchronicon</h2>
+        <label>Dataset Name:</label>
+        <input type="text" id= "foldername" >
+        <input type="button" id="recordBtn" value="Start" class="startrecordBtn">
+        <label id ="State"> Start </label>
     </div>
-
+    <div class="line"></div>
     <div id="mediaContainerDiv">
     </div>
+    <div class="line" style=" margin-top: 335px;"></div>
+    <div id="imagediv">
+    <button id="clickphoto"style="float: right;" >Take Photo</button>
+  
 
+</DIV>
     <script>
       // You can also require other files to run in this process
       require('./renderer.js')
