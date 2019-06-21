@@ -1,11 +1,16 @@
 <!DOCTYPE html>
 <html>
-  <head>
+  <head id ="header">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"> </script>
+<!-- Load the coco-ssd model. -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"> </script>
     <meta charset="UTF-8">
     <link rel="stylesheet" type="text/css" href="index.css">
     <title>Synchronicon Recorder</title>
   </head>
   <body>
+
+    <div class="MainContainer">
     <div class="Container">
         <h2>Synchronicon</h2>
         <label>Dataset Name:</label>
@@ -15,13 +20,24 @@
     </div>
     <div class="line"></div>
     <div id="mediaContainerDiv">
-    </div>
-    <div class="line" style=" margin-top: 335px;"></div>
-    <div id="imagediv">
-    <button id="clickphoto"style="float: right;" >Take Photo</button>
-  
 
-</DIV>
+    </div>
+    <div class="line"></div>
+     <input type="text" id= "photo_interval" >
+    <input type="button" id="clickphoto" style="float: right;" value = "Start">
+    <label id ="PhotoState"> Take a Photo </label>
+    <input type="checkbox" id="Photoprocessing" >
+    <label> Process Photo </label>
+    <ul id="imagediv" class="images">
+
+      </ul>
+    </div>
+<div id="machine">
+
+</div>
+<div id="imageprocc" class="processed">
+
+</div>
     <script>
       // You can also require other files to run in this process
       require('./renderer.js')
