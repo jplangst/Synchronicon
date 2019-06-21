@@ -1,12 +1,9 @@
-// This file is required by the index.html file and will
-// be executed in the renderer process for that window.
-// All of the Node.js APIs are available in this process.
 
-var fs = require('fs')
+var fs = require('fs');
 var counterfolder=1;
 var recordingPath = "./Recordings/";
-var jsonfile="./"
-//make and check directory
+var jsonfile="./";
+
 if (!fs.existsSync(recordingPath))
 {
     fs.mkdirSync(recordingPath);
@@ -15,12 +12,10 @@ if (!fs.existsSync(recordingPath))
 var webcamCounter = 0;
 var mediaDeviceInfos = []; //Stores the avaliable media devices
 var mediaObjects = []; //A list of the created media recorders
-var selectedcam = 1;
+var camnameid=0;
 
-var imageselector = 0 ;
+var currentvalue = "";
 
-  var currentvalue = "";
-//to record streaming function and change button state
 function recordingbutton(){
   currentvalue = document.getElementById('recordBtn').value;
   if(currentvalue === "Start"){
@@ -40,8 +35,6 @@ function recordingbutton(){
 var recordbutton = document.getElementById("recordBtn");
 recordbutton.onclick= recordingbutton ;
 
-
-//recorde stream of all camera
 function startRecording(){
 
 //Check input content
@@ -52,10 +45,21 @@ var fileCreationTimestamp = Date.now();
  {
    recordingName = inputFolderElement.value + "_";
  }
-    
+ else {
+   recordingName = "Recording_";
+ }
   for(var i = 0; i !== mediaObjects.length; i++){
-    mediaObjects[i].outFile = recordingPath+fileCreationTimestamp+'_'+recordingName+"Recording_Webcam_"+webcamCounter;
-    console.log(mediaObjects[i]);
+    var camname = document.getElementById('camname'+i);
+    var camnamenew = "";
+    if (camname && camname.value !== "")
+    {
+      camnamenew = camname.value;
+    }
+    else {
+      camnamenew = "Default";
+    }
+    mediaObjects[i].outFile = recordingPath+recordingName+fileCreationTimestamp+'_'+webcamCounter+'_'+camnamenew;
+    console.log('my came object'+mediaObjects[i]);
     var mediaRecorder = mediaObjects[i].recorder;
     mediaRecorder.start(1000);
     webcamCounter += 1; //Increment the global media recorder counter
@@ -81,7 +85,7 @@ webcamCounter=0;
 
 }
 
-//check information of devices attached with system
+
 function gotDevices(deviceInfos) {
   mediaDeviceInfos  = deviceInfos;
   Makingmedialist();
@@ -96,13 +100,13 @@ navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(
 function setupMediaRecorder(mediaObject){
   var videoConstraints = {};
   //Setup the video constraints
-  videoConstraints.deviceId = mediaObject.value;//newcont.deviceId;
+  videoConstraints.deviceId = mediaObject.value;
+//newcont.deviceId;
   console.log("my device ids"+mediaObject.value);
   var bitDepth = 16;
   var sampleRate = 44100;
   var bitRate = sampleRate * bitDepth;
-  navigator.mediaDevices.getUserMedia(
-    { video: videoConstraints}).then(function(stream) {
+  navigator.mediaDevices.getUserMedia({ video: videoConstraints}).then(function(stream) {
 
       const blobs = [];
 
@@ -220,6 +224,9 @@ function cleanTmpFiles(){
   }
 }
 
+var photomedias = [];
+//var index_photomedia;
+
 function Makingmedialist(){
 
   for (var i = 0; i !== mediaDeviceInfos.length; i++)
@@ -227,6 +234,8 @@ function Makingmedialist(){
     var deviceInfo = mediaDeviceInfos[i];
 
     if (deviceInfo.kind === 'videoinput') {
+    //  photomedias = deviceInfo;
+      photomedias.push(deviceInfo);
       //Create the element to display and record a video feed
       var videoRecorderDiv = document.createElement("DIV");
           videoRecorderDiv.classList.add("listing");
@@ -237,6 +246,10 @@ function Makingmedialist(){
       //Append the media options to the video container
 
         videoRecorderDiv.appendChild(videoElement);
+        var camname = document.createElement("input");
+        camname.classList.add("input-style");
+        camname.setAttribute('id','camname'+camnameid)
+        videoRecorderDiv.appendChild(camname);
         var mediaObject = {};
         mediaObject.videoElement = videoElement;
         mediaObject.recordingNmb = 0;
@@ -246,56 +259,109 @@ function Makingmedialist(){
       //Append the created elements to the document
         document.getElementById("mediaContainerDiv").appendChild(videoRecorderDiv);
         setupMediaRecorder(mediaObject);
+        camnameid+=1;
     }
   }
 }
-
+var photocamera=0;
 var photo = document.getElementById("clickphoto");
 var imageCapture;
-photo.onclick= photosetting;
+photo.onclick= photobutton;
 
-//set available streaming dynamically to capture image
+var photoprocessing_check = document.getElementById('Photoprocessing');
+
 function setupimages(photoobject)
 {
-  var photomedia = {};
-  photomedia.deviceId = photoobject.value;
-    console.log("my photo ids"+photoobject.value);
-  navigator.mediaDevices.getUserMedia({video: photomedia}).then(function(stream){
- photoobject.stream =   stream ;
- console.log(photoobject.stream);
- const track = stream.getVideoTracks()[0];
+var photomedia = {};
+ photomedia.deviceId = photoobject.value;
+ console.log("my photo ids"+photoobject.value);
+ navigator.mediaDevices.getUserMedia({video: photomedia}).then(function(stream){
+ var track = stream.getVideoTracks()[0];
  imageCapture = new ImageCapture(track);
  takePhoto();
+ console.log('photo taken');
    });
+   photocamera=0;
 }
 
-//creat image in blob and change it to img source with URL
+var imagediv= document.getElementById("imagediv");
+
+var countli=1;
 function takePhoto() {
   console.log("HAPPENS");
       imageCapture.takePhoto()
         .then(blob => {
-          console.log('Photo taken: ' + blob.type + ', ' + blob.size + 'B');
+          console.log('Taken Blob ' + blob.type + ', ' + blob.size + 'B');
+          type: 'image/png';
+          photocamera+=1;
+          console.log('value of camera'+photocamera);
+          var imgli = document.createElement("li");
+          imagediv.setAttribute("style", "border-color: black ; border: 1px solid;");
+          imagediv.appendChild(imgli);
+          imgli.setAttribute("id", "imageli" + countli);
           var image = document.createElement("img");
-          document.getElementById("imagediv").appendChild(image);
+          image.setAttribute('id','img' + countli)
+          image.setAttribute('method', 'POST')
+          document.getElementById("imageli" + countli).appendChild(image);
           image.src = URL.createObjectURL(blob);
+          var reader = new window.FileReader();
+          reader.readAsDataURL(blob);
+          reader.onloadend = function () {
+          base64data = reader.result;
+          let base64Image = base64data.split(';base64,').pop();
+          var fileCreationTimestamp = Date.now();
+          fs.writeFile('cam_'+photocamera+'_number'+'_image'+countli+'.png', base64Image, {encoding: 'base64'}, function(err) {
+          console.log('File created');
+           });
+          }
+          if(photoprocessing_check && photoprocessing_check.checked === true)
+          {
+          processphoto(countli);
+          }
+          countli +=1;
         })
         .catch(err => console.error('takePhoto() failed: ', err));
     }
-// get all available video streaming devices to capture image
+
+var photo_interval= document.getElementById('photo_interval');
+var photo_button_value;
+var photo_take = '';
+
+var interval_takephoto;
+
+function photobutton(){
+  photo_button_value = document.getElementById('clickphoto').value;
+  if(photo_interval && photo_interval.value!=='' && photo_button_value === "Start" ){
+    document.getElementById("clickphoto").value="Stop";
+    document.getElementById("PhotoState").innerHTML="Stop Taking Photos";
+    photo_take = photo_interval.value;
+     interval_takephoto = setInterval(photosetting, photo_take);
+    console.log("value of interval" + photo_take);
+  }
+  else if (photo_interval && photo_interval.value === '' && photo_button_value === "Start" ){
+    photosetting();
+  }
+
+  else{
+    document.getElementById("clickphoto").value="Start";
+    document.getElementById("PhotoState").innerHTML="Take a Photo";
+    clearInterval(interval_takephoto);
+  }
+}
+
+
 function photosetting()
 {
-  for (var i = 0; i !== mediaDeviceInfos.length; i++)
+  for (var i = 0; i !== photomedias.length; i++)
   {
-  var deviceInfo = mediaDeviceInfos[i];
-
-    if (deviceInfo.kind === 'videoinput')
-    {
+    var deviceInfo = photomedias[i];
       var photoobject = {};
       photoobject.value = deviceInfo.deviceId;
       setupimages(photoobject);
-    }
+
   }
 }
+
 
 function recordEventRecievedCallback(args){
   console.log(args);
@@ -307,12 +373,60 @@ function recordEventRecievedCallback(args){
     stopRecording();
   }
 }
+var nodeing;
+var machine;
+var mainscript;
+var countscript=1;
+function deleteChild() {
+        var e = document.getElementById("machine");
+        e.innerHTML = "";
+  }
+
+function processphoto(countli)
+{
+
+if(countscript==1)
+{
+
+machine = document.getElementById("machine");
+mainscript = document.createElement("script");
+machine.appendChild(mainscript);
+var canvas = document.createElement("canvas");
+canvas.setAttribute('id','canvas');
+//canvas.setAttribute('style','width:300px; height:225px');
+canvas.setAttribute('width','300');
+canvas.setAttribute('height','225');
+document.getElementById('imageprocc').appendChild(canvas);
+//nodeing = document.createTextNode("const image = document.getElementById('img"+countli+"');cocoSsd.load().then(model => {model.detect(image).then(predictions => {console.log('Predictions: ', predictions);});});");
+nodeing=document.createTextNode("var modelPromise;  var baseModel = 'mobilenet_v2'; modelPromise = cocoSsd.load(baseModel); const image = document.getElementById('img"+countli+"'); async function detection(){ const model = await modelPromise; console.time('predict1'); const result = await model.detect(image); console.timeEnd('predict1'); const c = document.getElementById('canvas');const context = c.getContext('2d');context.drawImage(image,0,0, 300, 225); context.font = '10px Arial'; console.log('number of detections: ', result.length); for (let i = 0; i < result.length; i++) {context.beginPath();context.rect(...result[i].bbox); context.lineWidth = 1; context.strokeStyle = 'green'; context.fillStyle = 'green'; context.stroke(); context.fillText(result[i].score.toFixed(1) + ' ' + result[i].class, result[i].bbox[0], result[i].bbox[1] > 10 ? result[i].bbox[1] - 5 : 10);}} detection();");
+mainscript.appendChild(nodeing);
+countscript+=1;
+}
+else if (countscript!=1) {
+deleteChild();
+machine = document.getElementById("machine");
+mainscript = document.createElement("script");
+machine.appendChild(mainscript);
+var canvas = document.createElement("canvas");
+canvas.setAttribute('id','canvas' + countscript);
+document.getElementById('imageprocc').appendChild(canvas);
+canvas.setAttribute('width','300');
+canvas.setAttribute('height','225');
+//nodeing = document.createTextNode(" const image" +countscript+" = document.getElementById('img"+countli+"'); cocoSsd.load().then(model => { model.detect(image"+countscript+").then(predictions => {console.log('Predictions: ', predictions);});}); ");
+nodeing=document.createTextNode(" var modelPromise; var baseModel = 'mobilenet_v2';  modelPromise = cocoSsd.load(baseModel); const image" +countscript+" = document.getElementById('img"+countli+"'); async function detection(){const model = await modelPromise; console.time('predict" +countscript+"'); const result = await model.detect(image"+countscript+"); console.timeEnd('predict" +countscript+"'); const c = document.getElementById('canvas"+countscript+"'); const context = c.getContext('2d'); context.drawImage(image"+countscript+",0,0, 300, 225); context.font = '10px Arial'; console.log('number of detections: ', result.length); for (let i = 0; i < result.length; i++) {context.beginPath();context.rect(...result[i].bbox); context.lineWidth = 1; context.strokeStyle = 'green'; context.fillStyle = 'green'; context.stroke(); context.fillText(result[i].score.toFixed(1) + ' ' + result[i].class, result[i].bbox[0], result[i].bbox[1] > 10 ? result[i].bbox[1] - 5 : 10);}} detection();");
+
+mainscript.appendChild(nodeing);
+countscript+=1;
+}
+}
+
+
 
 //WAMP
-const wamp = require('./wamp.js');
+/*const wamp = require('./wamp.js');
 config = {
   ip: "127.0.0.1",
   port: 8080,
   realm: "realm1"
 };
-wamp.restartWAMP(config, recordEventRecievedCallback);
+wamp.restartWAMP(config, recordEventRecievedCallback);*/
