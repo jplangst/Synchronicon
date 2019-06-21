@@ -17,12 +17,24 @@
   "author": "GitHub",
   "license": "CC0-1.0",
   "devDependencies": {
+    "@babel/core": "^7.4.5",
+    "@babel/preset-env": "^7.4.5",
+    "@babel/register": "^7.4.4",
     "electron": "^5.0.0"
   },
   "dependencies": {
+    "@tensorflow-models/coco-ssd": "^1.0.2",
+    "@tensorflow-models/mobilenet": "^1.0.1",
+    "@tensorflow/tfjs": "^1.1.2",
+    "@tensorflow/tfjs-node": "^1.1.2",
     "autobahn": "^19.4.1",
+    "esm": "^3.2.25",
     "fbr": "^2.0.8",
     "fluent-ffmpeg": "^2.1.2",
-    "gulp": "^4.0.2"
+    "gulp": "^4.0.2",
+    "node-fetch": "^2.6.0",
+    "octokat": "^0.10.0",
+    "opencv4nodejs": "^4.17.0",
+    "unfetch": "^4.1.0"
   }
 }
