@@ -1,13 +1,122 @@
-#buttonsContainer {
-  position: fixed;
-  height: 50px;
-  top: 10px;
-  left: 100px;
-  z-index: 10;
+body{
+    background: #007092;
+}
+
+.MainContainer{
+  max-width: auto;
+  border: 1px ;
+  overflow:auto;
+
 }
 
 #mediaContainerDiv{
-  position: absolute;
-  top: 50px;
-  height: 95%;
+  border: 1px ;
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+
+}
+#imagediv{
+
+  margin-top: 20px;
+  flex-wrap: wrap;
+  width: 80%;
+  overflow-x:auto;
+}
+
+#mediaContainerDiv > div,#imagediv > div{
+  border: 1px ;
+  text-align: center;
+  line-height: 75px;
+  font-size: 30px;
+
+
+}
+ul{
+  padding-inline-start: 0px;
+}
+ul.images{
+  white-space: nowrap;
+
+}
+ul.images li {
+  display: inline-block;
+
+  overflow: hidden;
+}
+
+.startrecordBtn
+{
+
+border: 0;
+background: transparent;
+box-sizing: border-box;
+width: 0;
+height: 14px;
+
+border-color: transparent transparent transparent #202020;
+transition: 100ms all ease;
+cursor: pointer;
+float: right;
+border-style: solid;
+border-width: 14px 0 14px 18px;
+}
+
+.stoprecordBtn
+{
+  width: 14px;
+  height: 14px;
+  border-style: solid;
+  border-width: 14px 14px 14px 14px;
+  border-color: #202020;
+  float: right;
+}
+
+#State
+{
+float: right;
+margin-right: 10px;
+font-size: 24px
+}
+
+.container{
+    width: 900px;
+    padding: 10px;
+    margin: auto;
+    border: 3px solid rgb(241, 5, 5);
+}
+
+.input-style {
+    border: 1px solid #ccc;
+    width: 120px;
+    border-radius: 3px;
+}
+
+.videos{
+  margin-top: 10px;
+  width: 300px;
+  height: 225px;
+}
+
+.listing {
+  display: inline-block;
+  width: 300px;
+}
+
+.line{
+width: 95%;
+height: 47px;
+border-bottom: 2px solid black;
+}
+
+.processed
+{
+
+  width: auto;
+  height: auto;
+}
+img
+{
+  width: 300px;
+  height: 225px;
 }
