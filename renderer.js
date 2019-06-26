@@ -31,7 +31,7 @@ var transcodingsCompleted = 0;
 var stoppedRecordings = 0;
 
 //Photo funcitons variables
-var imageCaptureObjects = [];
+var images = [];
 var countli=0;
 var photo_button_value;
 var photo_take = '';
@@ -58,74 +58,69 @@ photo.onclick= photobutton;
 recordbutton.onclick= recordingbutton ;
 
 //create stream and recorder function
-function createStream(videoConstraints,mediaObject)
+function createStream(mediaObject)
 {
-   navigator.mediaDevices.getUserMedia({ video: videoConstraints}).then(function(stream) {
-     const blobs = [];
-     const blob_reader = new FileReader();
-     var storage_stream = null;
-     var first = true;
-     blob_reader.addEventListener("load", function(ev) {
-          if(first){
-            storage_stream = require("fs").createWriteStream(mediaObject.outFile+"_rec"+mediaObject.recordingNmb+".webm");
-            mediaObject.stream = storage_stream;
-            first = false;
-          }
 
-          storage_stream.write(Buffer.from(ev.currentTarget.result));
-          if(blobs.length) {
-              ev.currentTarget.readAsArrayBuffer(blobs.shift());
-          }
-    });
-     var types = ["video/webm",
-            "audio/webm",
-            "video/webm\;codecs=vp8", //Seems to work well, can fix the header in a second
-            "video/webm\;codecs=daala", //Not supported (My machine)
-            "video/webm\;codecs=h264", //Works, but can't fix header without transcoding the whole video (Takes a long time)
-            "audio/webm\;codecs=opus",
-            "video/mpeg"]; //Not supported (My machine)
-
-     for (var i in types) {
-       console.log( "Is " + types[i] + " supported? " + (MediaRecorder.isTypeSupported(types[i]) ? "Maybe!" : "Nope :("));
-     }
-      const codec = "video/webm\;codecs=vp8";
-      const recorder = new MediaRecorder(stream, {
-        mimeType: codec,
-      });
-      mediaObject.recorder = recorder;
-
-      recorder.addEventListener("dataavailable", function(ev) {
-          if(blob_reader.readyState != 1) {
-            console.log(ev.data);
-            blob_reader.readAsArrayBuffer(ev.data);
-          } else {
-            blobs.push(ev.data);
-          }
-      });
-
-      recorder.addEventListener("stop", mediaRecorderStopped.bind(event, mediaObject));
+   navigator.mediaDevices.getUserMedia({ video: mediaObject}).then(function(stream) {
       //Stream preview
-      mediaObject.videoElement.srcObject = stream;
-      mediaObject.videoElement.load();
-      mediaObject.videoElement.play();
+      mediaObject.mediaStream = stream;
+      mediaObject.preview.srcObject = stream;
+      mediaObject.preview.load();
+      mediaObject.preview.play();
+      const track = mediaObject.mediaStream.getVideoTracks()[0];
+      mediaObject.imageCapture = new ImageCapture(track);
+      createMediaRecorders(mediaObject);
 
-     setupimage_stream(stream, videoConstraints);
   });
 }
 
-
-//Sets up the preview and prepares the recording of the media object
-function setupMediaRecorder(mediaObject)
+function createMediaRecorders (mediaObject)
 {
- var videoConstraints = {};
- //Setup the video constraints
 
- videoConstraints.deviceId = mediaObject.value;
- console.log("my device ids"+mediaObject.value);
- var bitDepth = 16;
- var sampleRate = 44100;
- var bitRate = sampleRate * bitDepth;
- createStream(videoConstraints,mediaObject);
+  const blobs = [];
+  const blob_reader = new FileReader();
+  var storage_stream = null;
+  var first = true;
+  blob_reader.addEventListener("load", function(ev) {
+       if(first){
+         storage_stream = require("fs").createWriteStream(mediaObject.videoFileName+"_rec"+mediaObject.videoRecordingCount+".webm");
+         mediaObject.videoWriteStream = storage_stream;
+         first = false;
+       }
+       storage_stream.write(Buffer.from(ev.currentTarget.result));
+       if(blobs.length) {
+           ev.currentTarget.readAsArrayBuffer(blobs.shift());
+       }
+  });
+
+  var videoFormat = ["video/webm",
+         "audio/webm",
+         "video/webm\;codecs=vp8", //Seems to work well, can fix the header in a second
+         "video/webm\;codecs=daala", //Not supported (My machine)
+         "video/webm\;codecs=h264", //Works, but can't fix header without transcoding the whole video (Takes a long time)
+         "audio/webm\;codecs=opus",
+         "video/mpeg"]; //Not supported (My machine)
+
+  for (var i in videoFormat) {
+    console.log( "Is " + videoFormat[i] + " supported? " + (MediaRecorder.isTypeSupported(videoFormat[i]) ? "Maybe!" : "Nope :("));
+  }
+   const codec = "video/webm\;codecs=vp8";
+   const recorder = new MediaRecorder(mediaObject.mediaStream, {
+     mimeType: codec,
+   });
+   mediaObject.mediaRecorder = recorder;
+
+   recorder.addEventListener("dataavailable", function(ev) {
+       if(blob_reader.readyState != 1) {
+         console.log(ev.data);
+         blob_reader.readAsArrayBuffer(ev.data);
+       } else {
+         blobs.push(ev.data);
+       }
+   });
+
+   recorder.addEventListener("stop", mediaRecorderStopped.bind(event, mediaObject));
+
 }
 
 // create media object and HTML elements. Also send media object to mediaObjects list
@@ -144,21 +139,22 @@ function Makingmedialist(){
         videoElement.setAttribute("id", "videoscont");
         videoElement.muted = true; //Mute the video otherwise we get a feedback loop while recording if sound is on
       //Append the media options to the video container
-
         videoRecorderDiv.appendChild(videoElement);
         var camname = document.createElement("input");
         camname.classList.add("input-style");
         camname.setAttribute('id','camname'+camnameid)
         videoRecorderDiv.appendChild(camname);
         var mediaObject = {};
-        mediaObject.videoElement = videoElement;
-        mediaObject.recordingNmb = 0;
-        mediaObject.value = deviceInfo.deviceId;
+      //  mediaObject
+        mediaObject.preview = videoElement;
+        mediaObject.videoRecordingCount = 0;
+        mediaObject.deviceId = deviceInfo.deviceId;
         mediaObjects.push(mediaObject);
 
       //Append the created elements to the document
         document.getElementById("mediaContainerDiv").appendChild(videoRecorderDiv);
-        setupMediaRecorder(mediaObject);
+      //  setupMediaRecorder(mediaObject);
+       createStream(mediaObject);
         camnameid+=1;
     }
   }
@@ -205,9 +201,9 @@ var fileCreationTimestamp = Date.now();
     else {
       camnamenew = "Default";
     }
-    mediaObjects[i].outFile = recordingPath+recordingName+fileCreationTimestamp+'_'+webcamCounter+'_'+camnamenew;
+    mediaObjects[i].videoFileName = recordingPath+recordingName+fileCreationTimestamp+'_'+webcamCounter+'_'+camnamenew;
     console.log('my came object'+mediaObjects[i]);
-    var mediaRecorder = mediaObjects[i].recorder;
+    var mediaRecorder = mediaObjects[i].mediaRecorder;
     mediaRecorder.start(1000);
     webcamCounter += 1; //Increment the global media recorder counter
     var  dataset= {
@@ -226,7 +222,7 @@ var fileCreationTimestamp = Date.now();
 //Stop recording function calls after click on stop button
 function stopRecording(){
   for(var i = 0; i !== mediaObjects.length; i++){
-    var mediaRecorder = mediaObjects[i].recorder;
+    var mediaRecorder = mediaObjects[i].mediaRecorder;
     mediaRecorder.stop();
   }
 webcamCounter=0;
@@ -246,7 +242,6 @@ function recordEventRecievedCallback(args){
 //called when the attached media recorder stops recording
 function mediaRecorderStopped(mediaObject, ev){
   console.log("Recording stopped");
-
   stoppedRecordings += 1;
   //All recordings have been stopped
   if(stoppedRecordings === mediaObjects.length){
@@ -265,9 +260,9 @@ function allRecordersStopped(){
   //iterate over all the media recorder objects, transcode, save and delete old file
   for(var i = 0; i !== mediaObjects.length; i++){
     var mediaObject = mediaObjects[i];
-    var savePath = mediaObject.outFile+"_rec"+mediaObject.recordingNmb+"_T.webm"; //.replace(".webm", "T.webm");
+    var savePath = mediaObject.videoFileName+"_rec"+mediaObject.videoRecordingCount+"_T.webm"; //.replace(".webm", "T.webm");
 
-    ffmpeg(mediaObject.outFile+"_rec"+mediaObject.recordingNmb+".webm")
+    ffmpeg(mediaObject.videoFileName+"_rec"+mediaObject.videoRecordingCount+".webm")
     .inputOptions('-sn')
     .outputOptions('-c copy')
     .format('webm')
@@ -286,30 +281,23 @@ function allRecordersStopped(){
 }
 
 //clean all temporary files after stop recording if we want new recording
-function cleanTmpFiles(){for(var i = 0; i !== mediaObjects.length; i++){
-    mediaObjects[i].videoElement.pause();
-    mediaObjects[i].stream.end();
-    fs.unlink(mediaObjects[i].outFile+"_rec"+mediaObjects[i].recordingNmb+".webm", (err) => {
+function cleanTmpFiles(){
+  for(var i = 0; i !== mediaObjects.length; i++){
+    mediaObjects[i].preview.pause();
+    mediaObjects[i].videoWriteStream.end();
+    fs.unlink(mediaObjects[i].videoFileName+"_rec"+mediaObjects[i].videoRecordingCount+".webm", (err) => {
       if (err) {
         console.error(err);
         return;
       }
     });
-    mediaObjects[i].recordingNmb += 1;
-    setupMediaRecorder(mediaObjects[i]);
+    mediaObjects[i].videoRecordingCount += 1;
+    createStream(mediaObjects[i]);
   }}
-
-
-//get media for images from video constraints
-function setupimage_stream(streaming, videoConstraints)
-{
-    const track = streaming.getVideoTracks()[0];
-    const imageCapture = new ImageCapture(track);
-    imageCaptureObjects.push(imageCapture);
-}
 
 //Photo button function to call takephoto function and change its state according to condition
 function photobutton(){
+
     photo_button_value = document.getElementById('clickphoto').value;
     imagul = document.createElement('ul');
     imagul.setAttribute("style", "border-color: black ; border: 1px solid;");
@@ -318,6 +306,7 @@ function photobutton(){
     imagul.setAttribute('id', 'ulnumber'+ countul);
     var theFirstChild = imagediv.firstChild;
     imagediv.insertBefore(imagul, theFirstChild);
+
     if(photo_interval && photo_interval.value!=='' && photo_button_value === "Start" ){
       document.getElementById("clickphoto").value="Stop";
       document.getElementById("PhotoState").innerHTML="Stop Taking Photos";
@@ -341,14 +330,13 @@ function photobutton(){
 
 //Take a photo function to create images from camera object list imageCaptureObjects and save it in a folder
 function takePhoto() {
-  for(var i =0; i!== imageCaptureObjects.length;i++)
+  for(var i =0; i!== mediaObjects.length;i++)
   {
-      imageCaptureObjects[i].takePhoto().then(blob =>
+      mediaObjects[i].imageCapture.takePhoto(). then( function (blob) 
         {
           console.log('Taken Blob ' + blob.type + ', ' + blob.size + 'B');
           type: 'image/png';
-        //  photocamera+=1;
-        //  console.log('value of camera'+photocamera);
+
           var imagul2= document.getElementById('ulnumber'+ countul);
           var imgli = document.createElement('li');
           console.log('value of li start' + countli);
@@ -380,12 +368,13 @@ function takePhoto() {
           fs.writeFile(fileCreationTimestamp+'_'+recordingName +'_image_'+countli+'.png', base64Image, {encoding: 'base64'}, function(err) {
           console.log('File created');
            });
-           if(photoprocessing_check && photoprocessing_check.checked === true)
+
+          /* if(photoprocessing_check && photoprocessing_check.checked === true)
            {
            processphoto(countli);
            }
+          */
           countli +=1;
-          console.log('value of li end' + countli);
           }
 
         }).catch(err => console.error('takePhoto() failed: ', err));
