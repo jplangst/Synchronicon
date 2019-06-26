@@ -57,6 +57,8 @@ var photo = document.getElementById("clickphoto");
 photo.onclick= photobutton;
 recordbutton.onclick= recordingbutton ;
 
+
+
 //create stream and recorder function
 function createStream(mediaObject)
 {
@@ -67,8 +69,10 @@ function createStream(mediaObject)
       mediaObject.preview.srcObject = stream;
       mediaObject.preview.load();
       mediaObject.preview.play();
-      const track = mediaObject.mediaStream.getVideoTracks()[0];
+      const track = mediaObject.mediaStream.getVideoTracks(mediaObject.mediaStream)[0];
       mediaObject.imageCapture = new ImageCapture(track);
+
+
       createMediaRecorders(mediaObject);
 
   });
@@ -136,7 +140,7 @@ function Makingmedialist(){
           videoRecorderDiv.classList.add("listing");
       var videoElement = document.createElement("VIDEO"); //The new Video element
         videoElement.classList.add("videos");
-        videoElement.setAttribute("id", "videoscont");
+        videoElement.setAttribute("id", "videoscont" + camnameid);
         videoElement.muted = true; //Mute the video otherwise we get a feedback loop while recording if sound is on
       //Append the media options to the video container
         videoRecorderDiv.appendChild(videoElement);
@@ -149,6 +153,7 @@ function Makingmedialist(){
         mediaObject.preview = videoElement;
         mediaObject.videoRecordingCount = 0;
         mediaObject.deviceId = deviceInfo.deviceId;
+
         mediaObjects.push(mediaObject);
 
       //Append the created elements to the document
@@ -299,11 +304,11 @@ function cleanTmpFiles(){
 function photobutton(){
 
     photo_button_value = document.getElementById('clickphoto').value;
-    imagul = document.createElement('ul');
+    imagul = document.createElement('div');
     imagul.setAttribute("style", "border-color: black ; border: 1px solid;");
     imagediv.appendChild(imagul);
     imagul.setAttribute('class', "images");
-    imagul.setAttribute('id', 'ulnumber'+ countul);
+    imagul.setAttribute('id', 'imagediv_number'+ countul);
     var theFirstChild = imagediv.firstChild;
     imagediv.insertBefore(imagul, theFirstChild);
 
@@ -329,56 +334,58 @@ function photobutton(){
   }
 
 //Take a photo function to create images from camera object list imageCaptureObjects and save it in a folder
-function takePhoto() {
+ async function takePhoto() {
+
   for(var i =0; i!== mediaObjects.length;i++)
   {
-      mediaObjects[i].imageCapture.takePhoto(). then( function (blob) 
-        {
-          console.log('Taken Blob ' + blob.type + ', ' + blob.size + 'B');
-          type: 'image/png';
+  await  mediaObjects[i].imageCapture.takePhoto().then( blob =>
+    {
 
-          var imagul2= document.getElementById('ulnumber'+ countul);
-          var imgli = document.createElement('li');
-          console.log('value of li start' + countli);
-          imgli.setAttribute("id", "imageli" + countli);
-          imagul.appendChild(imgli);
-          var image = document.createElement("img");
-          image.setAttribute('id','img' + countli)
-          image.setAttribute('method', 'POST')
-          document.getElementById("imageli" + countli).appendChild(image);
-          image.src = URL.createObjectURL(blob);
-          var reader = new window.FileReader();
-          reader.readAsDataURL(blob);
-          reader.onloadend = function () {
-          console.log('value of li mid value:' + countli);
-          base64data = reader.result;
-          let base64Image = base64data.split(';base64,').pop();
-           var fileCreationTimestamp = Date.now();
-          var recordingName = "";
-          var inputFolderElement = document.getElementById("foldername");
+      console.log('Taken Blob ' + blob.type + ', ' + blob.size + 'B');
+      type: 'image/png';
 
-          if(inputFolderElement && inputFolderElement.value !== "")
-          {
-            recordingName = inputFolderElement.value + "_";
-          }
-          else {
-            recordingName = "Default_Dataset_";
-          }
-          console.log('value of li second last' + countli);
-          fs.writeFile(fileCreationTimestamp+'_'+recordingName +'_image_'+countli+'.png', base64Image, {encoding: 'base64'}, function(err) {
-          console.log('File created');
-           });
+      var image = document.createElement("img");
+      image.setAttribute('id','img' + countli)
+      image.setAttribute('method', 'POST');
+      console.log();
+      image.src =  URL.createObjectURL(blob);
+      imagul.appendChild(image);
+      var reader =  new window.FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = function () {
+      console.log('value of li mid value:' + countli);
+      base64data = reader.result;
+      let base64Image = base64data.split(';base64,').pop();
+       var fileCreationTimestamp = Date.now();
+      var recordingName = "";
+      var inputFolderElement = document.getElementById("foldername");
 
-          /* if(photoprocessing_check && photoprocessing_check.checked === true)
-           {
-           processphoto(countli);
-           }
-          */
-          countli +=1;
-          }
+      if(inputFolderElement && inputFolderElement.value !== "")
+      {
+        recordingName = inputFolderElement.value + "_";
+      }
+      else {
+        recordingName = "Default_Dataset_";
+      }
+      console.log('value of li second last' + countli);
+      fs.writeFile(fileCreationTimestamp+'_'+recordingName +'_image_'+countli+'.png', base64Image, {encoding: 'base64'}, function(err) {
+      console.log('File created');
+       });
 
-        }).catch(err => console.error('takePhoto() failed: ', err));
-    }
+       if(photoprocessing_check && photoprocessing_check.checked === true)
+       {
+       processphoto(countli);
+       }
+
+      countli +=1;
+      }
+
+
+    }).catch(err => console.error('takePhoto() failed: ', err));
+
+
+  }
+
 }
 
 // process photos by sending them to machine learning API cocoSsd model in case if checkbox is checked
