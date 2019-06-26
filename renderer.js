@@ -72,7 +72,6 @@ function createStream(mediaObject)
       const track = mediaObject.mediaStream.getVideoTracks(mediaObject.mediaStream)[0];
       mediaObject.imageCapture = new ImageCapture(track);
 
-
       createMediaRecorders(mediaObject);
 
   });
@@ -334,29 +333,32 @@ function photobutton(){
   }
 
 //Take a photo function to create images from camera object list imageCaptureObjects and save it in a folder
- async function takePhoto() {
+async function takePhoto() {
+
+  var fileCreationTimestamp = Date.now();
 
   for(var i =0; i!== mediaObjects.length;i++)
   {
-  await  mediaObjects[i].imageCapture.takePhoto().then( blob =>
+    let photoPromise = mediaObjects[i].imageCapture.takePhoto();
+    let mediaObjectPromise = mediaObjects[i];
+    Promise.all([photoPromise, mediaObjectPromise, fileCreationTimestamp]).then((values) =>
     {
-
-      console.log('Taken Blob ' + blob.type + ', ' + blob.size + 'B');
-      type: 'image/png';
-
+      console.log('Taken Blob ' + values.type + ', ' + values.size + 'B');
+      console.log("Photo taken value: " + values[1].deviceId);
       var image = document.createElement("img");
       image.setAttribute('id','img' + countli)
       image.setAttribute('method', 'POST');
-      console.log();
-      image.src =  URL.createObjectURL(blob);
+
+      image.src =  URL.createObjectURL(values[0]);
       imagul.appendChild(image);
       var reader =  new window.FileReader();
-      reader.readAsDataURL(blob);
+      reader.readAsDataURL(values[0]);
+
       reader.onloadend = function () {
       console.log('value of li mid value:' + countli);
       base64data = reader.result;
       let base64Image = base64data.split(';base64,').pop();
-       var fileCreationTimestamp = Date.now();
+
       var recordingName = "";
       var inputFolderElement = document.getElementById("foldername");
 
@@ -368,7 +370,7 @@ function photobutton(){
         recordingName = "Default_Dataset_";
       }
       console.log('value of li second last' + countli);
-      fs.writeFile(fileCreationTimestamp+'_'+recordingName +'_image_'+countli+'.png', base64Image, {encoding: 'base64'}, function(err) {
+      fs.writeFile(values[2]+'_'+recordingName +'_image_'+countli+'.png', base64Image, {encoding: 'base64'}, function(err) {
       console.log('File created');
        });
 
