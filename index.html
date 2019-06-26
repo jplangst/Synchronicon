@@ -23,8 +23,9 @@
 
     </div>
     <div class="line"></div>
-      <label> Set interval for Photo </label>
-     <input type="text" id= "photo_interval" >
+    <div id = "RecordingDiv">
+    <label> Set interval for Photo </label>
+    <input type="text" id= "photo_interval" >
     <input type="button" id="clickphoto" style="float: right;" value = "Start">
     <label id ="PhotoState"> Take a Photo </label>
     <input type="checkbox" id="Photoprocessing" >
@@ -32,13 +33,14 @@
     <div id="imagediv">
 
     </div>
+    <div id="machine">
+
     </div>
-<div id="machine">
+    <div id="imageprocc" class="processed">
 
-</div>
-<div id="imageprocc" class="processed">
+    </div>
+    </div>
 
-</div>
     <script>
       // You can also require other files to run in this process
       require('./renderer.js')
