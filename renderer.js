@@ -35,7 +35,7 @@ var images = [];
 var countli=0;
 var photo_button_value;
 var photo_take = '';
-var imagul;
+var imagul='';
 var interval_takephoto;
 var countul=1;
 
@@ -71,7 +71,6 @@ function createStream(mediaObject)
       mediaObject.preview.play();
       const track = mediaObject.mediaStream.getVideoTracks(mediaObject.mediaStream)[0];
       mediaObject.imageCapture = new ImageCapture(track);
-
       createMediaRecorders(mediaObject);
 
   });
@@ -148,7 +147,12 @@ function Makingmedialist(){
         camname.setAttribute('id','camname'+camnameid)
         videoRecorderDiv.appendChild(camname);
         var mediaObject = {};
+
+        var imagereference = document.createElement("div"); //The new Video element
+          imagereference.setAttribute("id", "videoscont" + camnameid);
+          imagereference.setAttribute('class', "imagesdiv");
       //  mediaObject
+        mediaObject.imagereference = imagereference;
         mediaObject.preview = videoElement;
         mediaObject.videoRecordingCount = 0;
         mediaObject.deviceId = deviceInfo.deviceId;
@@ -300,28 +304,30 @@ function cleanTmpFiles(){
   }}
 
 //Photo button function to call takephoto function and change its state according to condition
-function photobutton(){
+
+imagul = document.createElement('div');
+imagul.setAttribute("style", "border-color: black ; border: 1px solid;");
+imagediv.appendChild(imagul);
+imagul.setAttribute('class', "images");
+imagul.setAttribute('id', 'imagediv');
+imagul.style.display="none";
+
+ function photobutton(){
+
+    imagul.style.display="block";
 
     photo_button_value = document.getElementById('clickphoto').value;
-    imagul = document.createElement('div');
-    imagul.setAttribute("style", "border-color: black ; border: 1px solid;");
-    imagediv.appendChild(imagul);
-    imagul.setAttribute('class', "images");
-    imagul.setAttribute('id', 'imagediv_number'+ countul);
-    var theFirstChild = imagediv.firstChild;
-    imagediv.insertBefore(imagul, theFirstChild);
 
-    if(photo_interval && photo_interval.value!=='' && photo_button_value === "Start" ){
+     if(photo_interval && photo_interval.value!=='' && photo_button_value === "Start" ){
       document.getElementById("clickphoto").value="Stop";
       document.getElementById("PhotoState").innerHTML="Stop Taking Photos";
       photo_take = photo_interval.value;
        interval_takephoto = setInterval(takePhoto, photo_take);
       console.log("value of interval" + photo_take);
-      countul+=1;
+
     }
     else if (photo_interval && photo_interval.value === '' && photo_button_value === "Start" ){
       takePhoto();
-      countul+=1;
     }
 
     else{
@@ -341,21 +347,27 @@ async function takePhoto() {
   {
     let photoPromise = mediaObjects[i].imageCapture.takePhoto();
     let mediaObjectPromise = mediaObjects[i];
+    imagul.appendChild(mediaObjects[i].imagereference);
     Promise.all([photoPromise, mediaObjectPromise, fileCreationTimestamp]).then((values) =>
     {
+
       console.log('Taken Blob ' + values.type + ', ' + values.size + 'B');
       console.log("Photo taken value: " + values[1].deviceId);
       var image = document.createElement("img");
-      image.setAttribute('id','img' + countli)
+      image.setAttribute('id', values[2] + '_' + values[1].deviceId);
       image.setAttribute('method', 'POST');
+      image.setAttribute('name', ' image' + countli);
 
+      var processvalue = values[2] + '_' + values[1].deviceId;
       image.src =  URL.createObjectURL(values[0]);
-      imagul.appendChild(image);
+      values[1].imagereference.appendChild(image);
+
+      var theFirstChild = values[1].imagereference.firstChild;
+      values[1].imagereference.insertBefore(image, theFirstChild);
+
       var reader =  new window.FileReader();
       reader.readAsDataURL(values[0]);
-
       reader.onloadend = function () {
-      console.log('value of li mid value:' + countli);
       base64data = reader.result;
       let base64Image = base64data.split(';base64,').pop();
 
@@ -369,14 +381,13 @@ async function takePhoto() {
       else {
         recordingName = "Default_Dataset_";
       }
-      console.log('value of li second last' + countli);
       fs.writeFile(values[2]+'_'+recordingName +'_image_'+countli+'.png', base64Image, {encoding: 'base64'}, function(err) {
       console.log('File created');
        });
 
        if(photoprocessing_check && photoprocessing_check.checked === true)
        {
-       processphoto(countli);
+       processphoto(processvalue);
        }
 
       countli +=1;
@@ -392,7 +403,7 @@ async function takePhoto() {
 
 // process photos by sending them to machine learning API cocoSsd model in case if checkbox is checked
 //code is created in HTML
-function processphoto(countli)
+function processphoto(processvalue)
 {
 
 if(countscript==1)
@@ -408,7 +419,7 @@ canvas.setAttribute('width','300');
 canvas.setAttribute('height','225');
 document.getElementById('imageprocc').appendChild(canvas);
 //nodeing = document.createTextNode("const image = document.getElementById('img"+countli+"');cocoSsd.load().then(model => {model.detect(image).then(predictions => {console.log('Predictions: ', predictions);});});");
-nodeing=document.createTextNode("var modelPromise;  var baseModel = 'mobilenet_v2'; modelPromise = cocoSsd.load(baseModel); const image = document.getElementById('img"+countli+"'); async function detection(){ const model = await modelPromise; console.time('predict1'); const result = await model.detect(image); console.timeEnd('predict1'); const c = document.getElementById('canvas');const context = c.getContext('2d');context.drawImage(image,0,0, 300, 225); context.font = '10px Arial'; console.log('number of detections: ', result.length); for (let i = 0; i < result.length; i++) {context.beginPath();context.rect(...result[i].bbox); context.lineWidth = 1; context.strokeStyle = 'green'; context.fillStyle = 'green'; context.stroke(); context.fillText(result[i].score.toFixed(1) + ' ' + result[i].class, result[i].bbox[0], result[i].bbox[1] > 10 ? result[i].bbox[1] - 5 : 10);}} detection();");
+nodeing=document.createTextNode("var modelPromise;  var baseModel = 'mobilenet_v2'; modelPromise = cocoSsd.load(baseModel); const image = document.getElementById('"+processvalue+"'); async function detection(){ const model = await modelPromise; console.time('predict1'); const result = await model.detect(image); console.timeEnd('predict1'); const c = document.getElementById('canvas');const context = c.getContext('2d');context.drawImage(image,0,0, 300, 225); context.font = '10px Arial'; console.log('number of detections: ', result.length); for (let i = 0; i < result.length; i++) {context.beginPath();context.rect(...result[i].bbox); context.lineWidth = 1; context.strokeStyle = 'green'; context.fillStyle = 'green'; context.stroke(); context.fillText(result[i].score.toFixed(1) + ' ' + result[i].class, result[i].bbox[0], result[i].bbox[1] > 10 ? result[i].bbox[1] - 5 : 10);}} detection();");
 mainscript.appendChild(nodeing);
 countscript+=1;
 }
@@ -423,7 +434,7 @@ document.getElementById('imageprocc').appendChild(canvas);
 canvas.setAttribute('width','300');
 canvas.setAttribute('height','225');
 //nodeing = document.createTextNode(" const image" +countscript+" = document.getElementById('img"+countli+"'); cocoSsd.load().then(model => { model.detect(image"+countscript+").then(predictions => {console.log('Predictions: ', predictions);});}); ");
-nodeing=document.createTextNode(" var modelPromise; var baseModel = 'mobilenet_v2';  modelPromise = cocoSsd.load(baseModel); const image" +countscript+" = document.getElementById('img"+countli+"'); async function detection(){const model = await modelPromise; console.time('predict" +countscript+"'); const result = await model.detect(image"+countscript+"); console.timeEnd('predict" +countscript+"'); const c = document.getElementById('canvas"+countscript+"'); const context = c.getContext('2d'); context.drawImage(image"+countscript+",0,0, 300, 225); context.font = '10px Arial'; console.log('number of detections: ', result.length); for (let i = 0; i < result.length; i++) {context.beginPath();context.rect(...result[i].bbox); context.lineWidth = 1; context.strokeStyle = 'green'; context.fillStyle = 'green'; context.stroke(); context.fillText(result[i].score.toFixed(1) + ' ' + result[i].class, result[i].bbox[0], result[i].bbox[1] > 10 ? result[i].bbox[1] - 5 : 10);}} detection();");
+nodeing=document.createTextNode(" var modelPromise; var baseModel = 'mobilenet_v2';  modelPromise = cocoSsd.load(baseModel); const image" +countscript+" = document.getElementById('"+processvalue+"'); async function detection(){const model = await modelPromise; console.time('predict" +countscript+"'); const result = await model.detect(image"+countscript+"); console.timeEnd('predict" +countscript+"'); const c = document.getElementById('canvas"+countscript+"'); const context = c.getContext('2d'); context.drawImage(image"+countscript+",0,0, 300, 225); context.font = '10px Arial'; console.log('number of detections: ', result.length); for (let i = 0; i < result.length; i++) {context.beginPath();context.rect(...result[i].bbox); context.lineWidth = 1; context.strokeStyle = 'green'; context.fillStyle = 'green'; context.stroke(); context.fillText(result[i].score.toFixed(1) + ' ' + result[i].class, result[i].bbox[0], result[i].bbox[1] > 10 ? result[i].bbox[1] - 5 : 10);}} detection();");
 
 mainscript.appendChild(nodeing);
 countscript+=1;
