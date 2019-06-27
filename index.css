@@ -113,3 +113,8 @@ img
   width: 300px;
   height: 225px;
 }
+.imagesdiv
+{
+  width: 300px;
+display: inline-block;
+}
